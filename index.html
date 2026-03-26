@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>🍳 레시피 저장 v5</title>
+<style>
+  /* ── Reset & Base ─────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --orange:     #FF6B2C;
+    --orange-lt:  #FFF0E8;
+    --orange-dk:  #E55520;
+    --gray-50:    #F9F9F9;
+    --gray-100:   #F2F2F2;
+    --gray-200:   #E5E5E5;
+    --gray-400:   #ABABAB;
+    --gray-600:   #717171;
+    --gray-800:   #2D2D2D;
+    --white:      #FFFFFF;
+    --radius:     14px;
+    --shadow:     0 4px 20px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: -apple-system, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-800);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  /* ── Header ───────────────────────────────────── */
+  .header {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 18px 20px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--gray-800);
+  }
+  .header p {
+    font-size: 13px;
+    color: var(--gray-400);
+    margin-top: 3px;
+    margin-left: 28px;
+  }
+
+  /* ── Card ─────────────────────────────────────── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin: 16px 16px 0;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── Section Label ────────────────────────────── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--orange);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+
+  /* ── Form Fields ──────────────────────────────── */
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-600);
+    margin-bottom: 6px;
+  }
+  label .req { color: var(--orange); margin-left: 2px; }
+
+  input[type="text"],
+  input[type="url"],
+  textarea {
+    width: 100%;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--gray-800);
+    background: var(--white);
+    outline: none;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+  input[type="text"]:focus,
+  input[type="url"]:focus,
+  textarea:focus {
+    border-color: var(--orange);
+  }
+  input::placeholder, textarea::placeholder { color: var(--gray-400); }
+  textarea { resize: none; height: 70px; line-height: 1.5; }
+
+  /* ── Select Chips ─────────────────────────────── */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--gray-200);
+    background: var(--white);
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .chip:active { transform: scale(0.96); }
+  .chip.selected {
+    background: var(--orange-lt);
+    border-color: var(--orange);
+    color: var(--orange);
+    font-weight: 600;
+  }
+
+  /* ── Star Rating ──────────────────────────────── */
+  .stars {
+    display: flex;
+    gap: 6px;
+  }
+  .star-btn {
+    font-size: 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    line-height: 1;
+    opacity: 0.25;
+    transition: opacity 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .star-btn.active { opacity: 1; }
+  .star-btn:active { transform: scale(0.88); }
+
+  /* ── Submit Button ────────────────────────────── */
+  .btn-save {
+    width: 100%;
+    background: var(--orange);
+    color: var(--white);
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .btn-save:hover { background: var(--orange-dk); }
+  .btn-save:active { transform: scale(0.98); }
+  .btn-save:disabled {
+    background: var(--gray-200);
+    color: var(--gray-400);
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── Toast ────────────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--gray-800);
+    color: var(--white);
+    padding: 13px 22px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: transform 0.3s cubic-bezier(.175,.885,.32,1.275);
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: #E53E3E; }
+  .toast.success { background: #2D8A4E; }
+
+  /* ── Spinner ──────────────────────────────────── */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.35);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Debug Box (개발용, 배포시 숨김) ─────────────── */
+  .debug-box {
+    background: #1a1a2e;
+    color: #00ff88;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    padding: 12px;
+    border-radius: 10px;
+    margin-top: 12px;
+    max-height: 120px;
+    overflow-y: auto;
+    display: none;
+  }
+  .debug-box.visible { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <h1>🍳 레시피 저장</h1>
+  <p>유튜브에서 발견한 레시피를 바로 저장해요</p>
+</div>
+
+<!-- ── 기본 정보 ── -->
+<div class="card">
+  <div class="section-label">기본 정보</div>
+
+  <div class="field">
+    <label>레시피 이름 <span class="req">*</span></label>
+    <input type="text" id="title" placeholder="예) 계란 프라이 파스타" autocomplete="off" />
+  </div>
+
+  <div class="field">
+    <label>유튜브 링크</label>
+    <input type="url" id="youtube_url" placeholder="https://youtu.be/..." autocomplete="off" oninput="onYoutubeInput(this.value)" />
+    <div id="thumb-wrap" style="display:none; margin-top:10px; border-radius:10px; overflow:hidden; position:relative;">
+      <img id="thumb-img" src="" alt="썸네일" style="width:100%; aspect-ratio:16/9; object-fit:cover; display:block;" />
+      <span id="thumb-badge" style="position:absolute; top:8px; left:8px; background:var(--orange); color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px;"></span>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>유튜버</label>
+    <div style="position:relative;">
+      <div class="chips" id="youtuber-chips">
+        <span style="font-size:13px; color:#aaa;" id="youtuber-loading">불러오는 중...</span>
+      </div>
+      <div id="youtuber-search-wrap" style="display:none; margin-top:8px; position:relative;">
+        <input type="text" id="youtuber-custom-input" placeholder="유튜버 검색 또는 직접입력" autocomplete="off" />
+        <ul id="youtuber-autocomplete" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #E5E5E5; border-radius:10px; margin-top:4px; padding:4px 0; list-style:none; z-index:50; box-shadow:0 4px 16px rgba(0,0,0,0.1); max-height:180px; overflow-y:auto;"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 분류 ── -->
+<div class="card">
+  <div class="section-label">분류</div>
+
+  <div class="field">
+    <label>카테고리 (복수 선택 가능)</label>
+    <div class="chips" id="category-chips">
+      <button class="chip" data-value="한식">🍚 한식</button>
+      <button class="chip" data-value="중식">🥢 중식</button>
+      <button class="chip" data-value="일식">🍱 일식</button>
+      <button class="chip" data-value="양식">🍝 양식</button>
+      <button class="chip" data-value="간식">🍪 간식</button>
+      <button class="chip" data-value="음료">🧃 음료</button>
+      <button class="chip" data-value="건강식">🥗 건강식</button>
+      <button class="chip" data-value="다이어트">💪 다이어트</button>
+      <button class="chip" data-value="__custom__" id="category-custom-btn">✏️ 직접입력</button>
+    </div>
+    <input type="text" id="category-custom-input" placeholder="카테고리 이름 입력 후 Enter" autocomplete="off"
+      style="display:none; margin-top:8px;" />
+  </div>
+</div>
+
+<!-- ── 평가 ── -->
+<div class="card">
+  <div class="section-label">평가</div>
+
+  <div class="field">
+    <label>별점</label>
+    <div class="stars" id="star-container">
+      <button class="star-btn" data-value="1">⭐</button>
+      <button class="star-btn" data-value="2">⭐</button>
+      <button class="star-btn" data-value="3">⭐</button>
+      <button class="star-btn" data-value="4">⭐</button>
+      <button class="star-btn" data-value="5">⭐</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>한줄평</label>
+    <textarea id="memo" placeholder="간단한 메모 (예: 간단하고 맛있음, 재료 구하기 어려움…)"></textarea>
+  </div>
+</div>
+
+<!-- ── 저장 버튼 ── -->
+<div style="margin: 0 16px;">
+  <button class="btn-save" id="btn-save">
+    <span class="spinner" id="spinner"></span>
+    <span id="btn-text">노션에 저장하기</span>
+  </button>
+
+  <!-- 디버그 로그 (개발용) -->
+  <div class="debug-box" id="debug-box"></div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  ✅ Workers URL만 여기에 입력하면 끝!
+// ============================================================
+const WORKERS_URL = "https://notion-proxy.wogns3885.workers.dev";
+
+// ── 상태 ────────────────────────────────────────────────────
+let selectedYoutuber = null;
+let selectedCategories = [];
+let selectedRating = 0;
+
+// ── 썸네일 ──────────────────────────────────────────────────
+function extractVideoId(url) {
+  const ps = [/youtu\.be\/([^?&\s]+)/, /youtube\.com\/watch\?v=([^&\s]+)/, /youtube\.com\/shorts\/([^?&\s]+)/];
+  for (const p of ps) { const m = url.match(p); if (m) return m[1]; }
+  return null;
+}
+function onYoutubeInput(url) {
+  const id = extractVideoId(url);
+  const wrap = document.getElementById('thumb-wrap');
+  if (id) {
+    document.getElementById('thumb-img').src = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+    document.getElementById('thumb-badge').textContent = url.includes('/shorts/') ? 'Shorts' : '일반 영상';
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+// ── 유튜버 동적 로드 ────────────────────────────────────────
+let youtuberList = [];
+
+async function loadYoutubers() {
+  try {
+    const res = await fetch(`${WORKERS_URL}/youtubers`);
+    const data = await res.json();
+    youtuberList = data.youtubers || [];
+  } catch(e) {
+    youtuberList = ['이태리 파브리','육식맨','수저','내일식단'];
+  }
+  renderYoutuberChips();
+}
+
+function renderYoutuberChips() {
+  const container = document.getElementById('youtuber-chips');
+  container.innerHTML = '';
+
+  // ✏️ 직접입력 맨 앞
+  const customBtn = document.createElement('button');
+  customBtn.className = 'chip';
+  customBtn.dataset.value = '__custom__';
+  customBtn.textContent = '✏️ 직접입력';
+  container.appendChild(customBtn);
+
+  // 유튜버 목록
+  youtuberList.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.dataset.value = name;
+    btn.textContent = name;
+    container.appendChild(btn);
+  });
+
+  initYoutuberChips();
+}
+
+function initYoutuberChips() {
+  document.querySelectorAll("#youtuber-chips .chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const val = chip.dataset.value;
+      if (val === '__custom__') {
+        const wrap = document.getElementById('youtuber-search-wrap');
+        const isVisible = wrap.style.display !== 'none';
+        document.querySelectorAll("#youtuber-chips .chip").forEach(c => c.classList.remove("selected"));
+        if (isVisible) {
+          wrap.style.display = 'none';
+          selectedYoutuber = null;
+        } else {
+          chip.classList.add("selected");
+          wrap.style.display = 'block';
+          document.getElementById('youtuber-custom-input').focus();
+        }
+        return;
+      }
+      document.getElementById('youtuber-search-wrap').style.display = 'none';
+      document.getElementById('youtuber-custom-input').value = '';
+      hideAutocomplete();
+      if (selectedYoutuber === val) {
+        selectedYoutuber = null;
+        chip.classList.remove("selected");
+      } else {
+        document.querySelectorAll("#youtuber-chips .chip").forEach(c => c.classList.remove("selected"));
+        selectedYoutuber = val;
+        chip.classList.add("selected");
+      }
+    });
+  });
+}
+
+// 자동완성
+const youtuberInput = document.getElementById('youtuber-custom-input');
+const autocompleteList = document.getElementById('youtuber-autocomplete');
+
+youtuberInput.addEventListener('input', function() {
+  const val = this.value.trim();
+  selectedYoutuber = val || null;
+  if (!val) { hideAutocomplete(); return; }
+  const matches = youtuberList.filter(n => n.includes(val));
+  if (matches.length === 0) { hideAutocomplete(); return; }
+  autocompleteList.innerHTML = '';
+  matches.forEach(name => {
+    const li = document.createElement('li');
+    li.textContent = name;
+    li.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:14px; color:#2D2D2D;';
+    li.addEventListener('mousedown', () => {
+      youtuberInput.value = name;
+      selectedYoutuber = name;
+      hideAutocomplete();
+      // 칩에서 직접입력 selected 유지
+    });
+    li.addEventListener('mouseover', () => li.style.background = '#FFF0E8');
+    li.addEventListener('mouseout', () => li.style.background = '');
+    autocompleteList.appendChild(li);
+  });
+  autocompleteList.style.display = 'block';
+});
+
+youtuberInput.addEventListener('blur', () => setTimeout(hideAutocomplete, 150));
+
+function hideAutocomplete() {
+  autocompleteList.style.display = 'none';
+}
+
+// 페이지 로드 시 유튜버 목록 불러오기
+loadYoutubers();
+
+// ── 카테고리 (복수 선택 + 직접입력) ─────────────────────────
+document.querySelectorAll("#category-chips .chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    const val = chip.dataset.value;
+    if (val === '__custom__') {
+      const input = document.getElementById('category-custom-input');
+      const isVisible = input.style.display !== 'none';
+      if (isVisible) {
+        input.style.display = 'none';
+        chip.classList.remove("selected");
+      } else {
+        chip.classList.add("selected");
+        input.style.display = 'block';
+        input.focus();
+      }
+      return;
+    }
+    if (chip.classList.contains("selected")) {
+      chip.classList.remove("selected");
+      selectedCategories = selectedCategories.filter(c => c !== val);
+    } else {
+      chip.classList.add("selected");
+      selectedCategories.push(val);
+    }
+  });
+});
+document.getElementById('category-custom-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    const val = this.value.trim();
+    if (val && !selectedCategories.includes(val)) {
+      selectedCategories.push(val);
+      this.value = '';
+      // 태그 표시
+      const tag = document.createElement('span');
+      tag.textContent = val + ' ✕';
+      tag.style.cssText = 'display:inline-block;background:var(--orange);color:#fff;padding:4px 10px;border-radius:20px;font-size:13px;margin:4px 4px 0 0;cursor:pointer;';
+      tag.onclick = () => {
+        selectedCategories = selectedCategories.filter(c => c !== val);
+        tag.remove();
+      };
+      this.parentElement.insertBefore(tag, this);
+    }
+  }
+});
+
+// ── 별점 ────────────────────────────────────────────────────
+const starBtns = document.querySelectorAll(".star-btn");
+starBtns.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const val = parseInt(btn.dataset.value);
+    if (selectedRating === val) {
+      selectedRating = 0;
+      updateStars(0);
+    } else {
+      selectedRating = val;
+      updateStars(val);
+    }
+  });
+});
+
+function updateStars(count) {
+  starBtns.forEach(btn => {
+    btn.classList.toggle("active", parseInt(btn.dataset.value) <= count);
+  });
+}
+
+// ── 저장 ────────────────────────────────────────────────────
+document.getElementById("btn-save").addEventListener("click", async () => {
+  const title = document.getElementById("title").value.trim();
+
+  if (!title) {
+    showToast("레시피 이름을 입력해주세요 🍳", "error");
+    document.getElementById("title").focus();
+    return;
+  }
+
+  setLoading(true);
+  clearDebug();
+
+  const ytUrl = document.getElementById("youtube_url").value.trim();
+  const videoId = extractVideoId(ytUrl);
+  const thumbUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+
+  const payload = {
+    title,
+    youtube_url: ytUrl,
+    thumbnail_url: thumbUrl,
+    youtuber:    selectedYoutuber,
+    categories:  selectedCategories,
+    rating:      selectedRating > 0 ? "⭐".repeat(selectedRating) : null,
+    memo:        document.getElementById("memo").value.trim(),
+  };
+
+  log("📤 전송 데이터:", JSON.stringify(payload, null, 2));
+
+  try {
+    const res = await fetch(`${WORKERS_URL}/save`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    log("📥 응답 상태:", res.status);
+    log("📥 응답 데이터:", JSON.stringify(data, null, 2));
+
+    if (res.ok && data.success) {
+      showToast("✅ 노션에 저장됐어요!", "success");
+      resetForm();
+      loadYoutubers(); // 새 유튜버가 추가됐을 수 있으므로 목록 새로고침
+    } else {
+      const msg = data.notion_message || data.error || "저장 실패";
+      showToast(`❌ ${msg}`, "error");
+      log("❗ 오류:", msg);
+    }
+  } catch (err) {
+    log("❗ 네트워크 오류:", err.message);
+    showToast("❌ 서버 연결 실패. Workers URL을 확인해주세요.", "error");
+  } finally {
+    setLoading(false);
+  }
+});
+
+// ── 폼 초기화 ────────────────────────────────────────────────
+function resetForm() {
+  document.getElementById("title").value = "";
+  document.getElementById("youtube_url").value = "";
+  document.getElementById("memo").value = "";
+  document.getElementById("thumb-wrap").style.display = "none";
+  document.getElementById("youtuber-search-wrap").style.display = "none";
+  document.getElementById("youtuber-custom-input").value = "";
+  hideAutocomplete();
+  selectedYoutuber = null;
+  document.getElementById("category-custom-input").style.display = "none";
+  document.getElementById("category-custom-input").value = "";
+  selectedYoutuber = null;
+  selectedCategories = [];
+  selectedRating = 0;
+  document.querySelectorAll(".chip").forEach(c => c.classList.remove("selected"));
+  // 직접입력 태그 제거
+  document.querySelectorAll("#category-chips span").forEach(t => t.remove());
+  updateStars(0);
+}
+
+// ── 로딩 상태 ────────────────────────────────────────────────
+function setLoading(on) {
+  const btn = document.getElementById("btn-save");
+  const spinner = document.getElementById("spinner");
+  const text = document.getElementById("btn-text");
+  btn.disabled = on;
+  spinner.style.display = on ? "block" : "none";
+  text.textContent = on ? "저장 중…" : "노션에 저장하기";
+}
+
+// ── 토스트 ────────────────────────────────────────────────────
+function showToast(msg, type = "") {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.className = "toast " + type;
+  void toast.offsetWidth; // reflow
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2800);
+}
+
+// ── 디버그 로그 (개발 중 활성화, 배포 시 비활성화) ──────────────
+const DEBUG = true; // false로 바꾸면 로그 숨김
+function log(...args) {
+  if (!DEBUG) return;
+  const box = document.getElementById("debug-box");
+  box.classList.add("visible");
+  box.textContent += args.join(" ") + "\n";
+}
+function clearDebug() {
+  const box = document.getElementById("debug-box");
+  box.textContent = "";
+}
+</script>
+</body>
+</html>
